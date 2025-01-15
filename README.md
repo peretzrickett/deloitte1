@@ -1,120 +1,151 @@
-This repository showcases a secure AWS environment built with Terraform. It addresses Part 1 of the Cloud Security Architect Challenge by focusing on three NIST CSF Protect (PR) categories/subcategories:
+# Deloitte Cloud Security Architecture
 
-PR.PT (Protective Technology)
-PR.DS (Data Security)
-PR.AC (Identity Management and Access Control)
-Table of Contents
-Overview
-Architecture
-Prerequisites
-Installation and Setup
-Clone the Repo
-Configure AWS Credentials
-Deployment
-Initialize Terraform
-Plan and Apply
-Verification
-Outputs
-Teardown
-NIST CSF Mapping
-Notes and Warnings
-Contact
-Overview
-This project creates a three-control AWS setup demonstrating how to:
+A demonstration of deploying a **secure AWS environment** with **Terraform**. This setup maps to three NIST CSF Protect (PR) subcategories:
 
-Capture VPC Flow Logs for audit and monitoring (PR.PT-1).
-Encrypt data at rest in S3 using server-side encryption (PR.DS-1).
-Secure an EC2 instance with an IAM role (no hardcoded credentials) and limited Security Group ingress (PR.AC-3).
-All resources are declared in Terraform. By deploying this code, you have a ready-made environment that aligns with common cloud security best practices.
+1. **PR.PT (Protective Technology)**  
+2. **PR.DS (Data Security)**  
+3. **PR.AC (Identity Management and Access Control)**  
 
-Architecture
-VPC + Subnet + Internet Gateway
-A single VPC hosting a public subnet for the EC2 instance.
-Flow Logs
-Captures inbound/outbound network traffic and sends to CloudWatch Logs.
-S3 Bucket
-Defaults to AES-256 encryption at rest.
-Optional bucket policy to enforce encryption and HTTPS connections.
-EC2 Instance
-Uses an IAM Instance Profile to avoid storing credentials locally.
-A Security Group restricts inbound traffic to specific CIDRs (or 0.0.0.0/0 if testing).
-Prerequisites
-AWS Account with permissions to create VPCs, subnets, security groups, EC2, S3, IAM, and CloudWatch Logs.
-Terraform (version 1.x or newer).
-AWS CLI (optional, but helpful for validation).
-Installation and Setup
-Clone the Repo
-bash
-Copy code
+---
+
+## Table of Contents
+
+- [Deloitte Cloud Security Architecture](#deloitte-cloud-security-architecture)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Prerequisites](#prerequisites)
+  - [Project Structure](#project-structure)
+  - [Installation and Setup](#installation-and-setup)
+
+---
+
+## Overview
+
+This project creates several AWS resources that fulfill core security requirements:
+
+- **VPC + Flow Logs (PR.PT-1)**: Log inbound/outbound traffic to CloudWatch.  
+- **S3 Bucket with Encryption (PR.DS-1)**: Default encryption at rest (AES-256).  
+- **EC2 with IAM Role + Restricted Security Group (PR.AC-3)**: No hardcoded credentials, inbound SSH locked down.
+
+All infrastructure is declared in **Terraform** for consistent, repeatable deployments.
+
+---
+
+## Architecture
+
+1. **VPC, Subnet, and Internet Gateway**  
+   - A single VPC with a **public subnet** hosting the EC2 instance.  
+2. **Flow Logs**  
+   - Captures VPC network traffic and sends logs to **CloudWatch Logs**.  
+3. **S3 Bucket**  
+   - Enforces **server-side encryption** (AES-256 or KMS).  
+   - (Optional) Bucket policy for secure transport (HTTPS only) and encryption.  
+4. **EC2 Instance**  
+   - **IAM Instance Profile** for least privilege (no static credentials on disk).  
+   - **Security Group** restricting inbound SSH to a specific CIDR block or 0.0.0.0/0 for demo.
+
+---
+
+## Prerequisites
+
+- **AWS Account** with permissions to create:
+  - VPC, Subnets, Security Groups, EC2, S3, IAM, CloudWatch Logs
+- **Terraform** 1.x or newer
+- **AWS CLI** (optional but recommended for verification)
+
+---
+
+## Project Structure
+
+deloitte1/
+├── main.tf                # Main Terraform configuration
+├── variables.tf           # Variable definitions for AWS region, CIDRs, etc.
+├── outputs.tf             # Optional outputs for easy reference
+├── terraform.tfvars       # Local variable overrides (if used)
+├── README.md              # This file
+└── ...                    # .git, other files, etc.
+
+---
+
+## Installation and Setup
+
+1. **Clone the Repo**
+
+```bash
 git clone https://github.com/peretzrickett/deloitte1.git
 cd deloitte1
-Configure AWS Credentials
-Run:
+```
+
+AWS Credentials
+Configure your AWS credentials locally (if you haven’t yet):
 bash
 Copy code
 aws configure
-Provide an AWS Access Key, Secret Access Key, default region, and output format.
-Or set environment variables like AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+Provide your AWS Access Key, Secret Access Key, default region, and output format.
+Alternatively, set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY as environment variables.
 Deployment
 Initialize Terraform
 bash
 Copy code
 terraform init
-Installs required providers (e.g., AWS).
-Sets up the local Terraform environment.
+Installs necessary providers (AWS) and sets up your local Terraform environment.
 Plan and Apply
-Review the Plan
+Review the Plan:
 
 bash
 Copy code
 terraform plan
-Shows which resources will be created, modified, or destroyed.
-Deploy Resources
+This shows which resources Terraform will create or modify.
+Deploy Infrastructure:
 
 bash
 Copy code
 terraform apply
 Type yes when prompted.
-Terraform then creates the VPC, subnets, S3 bucket, EC2 instance, etc.
+Wait for Terraform to create the VPC, S3 bucket, EC2 instance, etc.
 Verification
-After a successful deployment, check the AWS Console:
-
 VPC:
-Confirm a Flow Log is active for the VPC.
-See logs in CloudWatch Logs under /aws/vpc/flow-logs/....
+
+Check the AWS VPC Console → Your VPCs.
+Confirm Flow Logs are enabled, and logs appear in CloudWatch.
 S3:
-Access the newly created bucket to confirm Default Encryption is set.
-If using a bucket policy, confirm encryption is enforced.
+
+Go to the AWS S3 Console → Buckets, find the deployed bucket.
+Confirm Default Encryption is set to AES-256 or KMS.
 EC2:
-Ensure the instance is running in the VPC’s public subnet.
-Confirm the IAM Role is attached (visible on the EC2 → Actions → Security → Modify IAM Role page).
-Security Group: confirm only the configured CIDR (or 0.0.0.0/0 for testing) can connect via port 22.
+
+Check the AWS EC2 Console → Instances.
+Validate the instance has the IAM Instance Profile attached (no credentials in .ssh config).
+Security Group should restrict inbound SSH either to 0.0.0.0/0 (demo) or your IP range.
 Outputs
-You can run:
+Run:
 
 bash
 Copy code
 terraform output
-to see:
+You’ll see:
 
-vpc_id: The ID of the created VPC.
-s3_bucket_name: The name of the secure S3 bucket.
-ec2_public_ip: The public IP address of the EC2 instance.
+vpc_id: ID of the created VPC
+s3_bucket_name: Name of the secure S3 bucket
+ec2_public_ip: Public IP address of the EC2 instance
 Teardown
-To avoid ongoing AWS costs, destroy the environment once done:
+When finished, destroy all resources:
 
 bash
 Copy code
 terraform destroy
 Type yes to confirm.
-Terraform will remove all resources, including the VPC, S3 bucket (must be empty), and IAM roles.
+The VPC, S3 bucket (if empty), IAM roles, and EC2 instance will be removed to avoid costs.
 NIST CSF Mapping
-NIST CSF	AWS Control	Resource
-PR.PT-1	VPC Flow Logs for audit, stored in CloudWatch Logs	aws_flow_log.vpc_flow_logs
-PR.DS-1	S3 Bucket with server-side encryption	aws_s3_bucket.secure_bucket
-PR.AC-3	EC2 IAM Role (no embedded creds) + restrictive SG	aws_instance.ec2_instance & aws_security_group.ec2_sg
+Category	AWS Resource	Terraform Reference
+PR.PT-1	VPC Flow Logs to CloudWatch (monitor inbound/outbound traffic)	aws_flow_log.vpc_flow_logs
+PR.DS-1	S3 Bucket Encryption (server-side encryption at rest)	aws_s3_bucket.secure_bucket
+PR.AC-3	EC2 Instance + IAM Role (no embedded credentials) + Security Group	aws_instance.ec2_instance and aws_security_group.ec2_sg
 Notes and Warnings
-0.0.0.0/0 for SSH: Not recommended for production; it allows all IPs to connect over SSH.
-S3 Bucket Deletion: If the bucket contains objects, Terraform destroy may fail. Remove or empty the bucket first.
-Deprecation Warning: If you see references to log_group_name being deprecated, replace it with log_destination referencing the CloudWatch Log Group ARN.
-Costs: Standard AWS charges apply for the running EC2 instance, Flow Logs storage, and other resources.
+SSH Inbound
+Using 0.0.0.0/0 for SSH access is not recommended for production, but okay for a quick demo.
+S3 Bucket Deletion
+If the S3 bucket still has objects, terraform destroy may fail. Empty the bucket first.
+Deprecation Warnings
+If you see references to deprecated arguments (e.g., log_group_name for Flow Logs or S3 encryption in the aws_s3_bucket resource), you can update to recommended arguments (log_destination or aws_s3_bucket_server_side_encryption_configuration).
